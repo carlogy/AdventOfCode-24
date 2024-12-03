@@ -8,9 +8,13 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	filereader "github.com/carlogy/AdventOfCode-24/days/fileReader"
 )
 
 func SolvePart1(path string) (int, error) {
+
+	fmt.Println("Starting day 1")
 
 	list1 := make([]int, 0)
 	list2 := make([]int, 0)
@@ -22,7 +26,10 @@ func SolvePart1(path string) (int, error) {
 
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	scanner, err := filereader.NewScanner(file)
+	if err != nil {
+		return 0, err
+	}
 
 	for scanner.Scan() {
 		splitString := strings.Split(scanner.Text(), "   ")
