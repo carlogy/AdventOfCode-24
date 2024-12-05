@@ -1,13 +1,18 @@
 package day3
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 
 	filereader "github.com/carlogy/AdventOfCode-24/days/fileReader"
 )
 
 func SolvePart1(path string) (int, error) {
+
+	total := 0
 
 	fmt.Println("Starting day 3")
 
@@ -22,22 +27,38 @@ func SolvePart1(path string) (int, error) {
 		return 0, fmt.Errorf("Error instantiating new scanner: %w", err)
 	}
 
-	// re, err := regexp.Compile(`/(mul)\((\d*\,\d*\))/`)
+	re := regexp.MustCompile(`mul\(\d+,\d+\)`)
 
+	scanner.Split(bufio.ScanWords)
 	for scanner.Scan() {
 
-		for i, v := range scanner.Text() {
-			switch {
-			case string(v) == "m":
-				fmt.Println("Match: ", i, string(v))
-			case string(v) == "u":
-				fmt.Println("Match: ", i, string(v))
-			case string(v) == "l":
-				fmt.Println("Match: ", i, string(v))
-			}
-		}
-		break
-	}
+		mulEx := re.FindAllStringSubmatch(scanner.Text(), -1)
 
-	return 0, nil
+		for _, v := range mulEx {
+
+			result := getResult(v[0])
+
+			total += result
+		}
+
+	}
+	return total, nil
+
+}
+
+func mul(num1, num2 int) int {
+	return num1 * num2
+}
+
+func getResult(mulExpression string) int {
+	var result int
+	r := regexp.MustCompile(`(\d+)`)
+
+	nums := r.FindAllString(mulExpression, -1)
+
+	num1, _ := strconv.Atoi(nums[0])
+	num2, _ := strconv.Atoi(nums[1])
+
+	result = mul(num1, num2)
+	return result
 }
