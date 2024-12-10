@@ -133,13 +133,13 @@ func TestSolvePartTwo(t *testing.T) {
 			str:    "xmul(2,4)%&mul[3,7]!",
 			result: 8,
 		}, {
-			str:    "xmul(2,4)xdont()mul(2,4)%&mul[3,7]!",
+			str:    "xmul(2,4)xdon't()mul(2,4)%&mul[3,7]!",
 			result: 8,
 		}, {
-			str:    "dont()xmul(2,4)xdo()mul(2,4)%&mul[3,7]!dont()",
+			str:    "don't()xmul(2,4)xdo()mul(2,4)%&mul[3,7]!don't()",
 			result: 8,
 		}, {
-			str:    "dont()xmul(2,4)%&mul[3,7]!",
+			str:    "don't()xmul(2,4)%&mul[3,7]!",
 			result: 0,
 		},
 	}

@@ -44,21 +44,13 @@ func SolvePart1(path string) (int, error) {
 
 	for scanner.Scan() {
 		str := strings.Split(scanner.Text(), " ")
-		intLevels := make([]int, len(str))
 
-		for i, v := range str {
+		intLevels := converToIntSlice(str)
 
-			if num, err := strconv.Atoi(v); err == nil {
-				intLevels[i] = num
-			}
-		}
-
-		reverseSlice := make([]int, len(intLevels))
-		_ = copy(reverseSlice, intLevels)
+		reverseSlice := copySlice(intLevels)
 		slices.Reverse(reverseSlice)
 
-		compactLevel := make([]int, len(intLevels))
-		_ = copy(compactLevel, intLevels)
+		compactLevel := copySlice(intLevels)
 		compactLevel = slices.Compact(compactLevel)
 
 		if len(compactLevel) == len(intLevels) && (slices.IsSorted(intLevels) || slices.IsSorted(reverseSlice)) {
@@ -86,44 +78,6 @@ func SolvePart1(path string) (int, error) {
 	return total, nil
 }
 
-func SolvePart2(path string) (int, error) {
-	rp := ReportsCount{}
-	file, err := os.Open(path)
-	if err != nil {
-		return 0, fmt.Errorf("Error opening file: %w", err)
-	}
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		str := strings.Split(scanner.Text(), " ")
-		levels := converToIntSlice(str)
-
-		scrubbedLevels := removeBadLevels(levels)
-		sliceLenDiff := len(levels) - len(scrubbedLevels)
-
-		switch {
-		case slices.IsSorted(scrubbedLevels) && sliceLenDiff == 1:
-			rp.Passed++
-			continue
-		case !slices.IsSorted(scrubbedLevels):
-			reverseSlice := make([]int, 0)
-			reverseSlice = append(reverseSlice, scrubbedLevels...)
-			slices.Reverse(reverseSlice)
-			if slices.IsSorted(reverseSlice) {
-				rp.Passed++
-				continue
-			}
-
-			fmt.Println("Hey I'm not sorted! ", reverseSlice, "OG Slice: ", scrubbedLevels)
-			break
-		}
-
-	}
-	fmt.Println(rp.Failed)
-	return rp.Passed, nil
-}
-
 func converToIntSlice(slice []string) []int {
 	levels := make([]int, len(slice))
 
@@ -138,8 +92,7 @@ func converToIntSlice(slice []string) []int {
 
 func removeBadLevels(slice []int) []int {
 
-	newSlice := make([]int, 0)
-	newSlice = append(newSlice, slice...)
+	newSlice := copySlice(slice)
 
 	for i := 1; i < len(newSlice); i++ {
 		currentNum := newSlice[i]
@@ -147,12 +100,13 @@ func removeBadLevels(slice []int) []int {
 		absDiff := int(math.Abs(float64(currentNum) - float64(prevNum)))
 
 		if absDiff == 0 {
-			slices.Delete(newSlice, i-1, i)
+			newSlice = slices.Delete(newSlice, i-1, i)
 		}
 
 		if absDiff > 3 {
-			slices.Delete(newSlice, i-1, i)
+			newSlice = slices.Delete(newSlice, i-1, i)
 		}
+
 	}
 
 	scrubbedSlice := make([]int, 0)
@@ -161,16 +115,119 @@ func removeBadLevels(slice []int) []int {
 			scrubbedSlice = append(scrubbedSlice, v)
 		}
 	}
+	noDupSlice := removeDuplicates(scrubbedSlice)
+
+	return noDupSlice
+}
+
+func removeDuplicates(slice []int) []int {
+
+	newSlice := copySlice(slice)
+
+	freqMap := make(map[int]int)
+
+	for _, v := range newSlice {
+		freqMap[v]++
+	}
+
+	scrubbedSlice := make([]int, 0)
+	for i, v := range freqMap {
+		if v <= 1 {
+			scrubbedSlice = append(scrubbedSlice, i)
+		}
+	}
 	return scrubbedSlice
 }
 
-// figure out final scrubb
-func sortFinalCount(slice []int) ([]int, int, bool) {
-	copySlice := make([]int, 0)
-	copySlice = append(copySlice, slice...)
-	swappedCount := 0
-	dupExists := false
-	freqMap := make(map[int]int)
+func copySlice(slice []int) []int {
+	newslice := make([]int, 0)
+	newslice = append(newslice, slice...)
 
-	return copySlice, swappedCount, dupExists
+	return newslice
+}
+
+// figure out final sort
+func sortFinalCount(slice []int) ([]int, int) {
+
+	copy := copySlice(slice)
+
+	swapCount := 0
+
+	swapped := true
+
+	for swapped {
+		swapped = false
+		for i := 1; i < len(copy); i++ {
+			if copy[i] < copy[i-1] {
+				swapped = true
+				swapCount++
+				// copySlice[i-1], copySlice[i] = copySlice[i], copySlice[i-1]
+				copy = slices.Delete(copy, i, i+1)
+				// fmt.Println("Swap:\t", copySlice)
+			}
+		}
+	}
+
+	if len(copy) <= 1 {
+
+		reverseSlice := copySlice(slice)
+		slices.Reverse(reverseSlice)
+
+		newSlice, swappedCount := sortFinalCount(reverseSlice)
+
+		return newSlice, swappedCount
+	}
+
+	return copy, swapCount
+}
+
+func SplitSlice(slice []int) ([]int, []int) {
+	pivot := int((len(slice) / 2))
+
+	half1 := make([]int, 0)
+	half1 = append(half1, slice[:pivot]...)
+
+	half2 := make([]int, 0)
+	half2 = append(half2, slice[pivot:]...)
+
+	return half1, half2
+}
+
+func SolvePart2(path string) (int, error) {
+
+	rp := ReportsCount{}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return 0, fmt.Errorf("Error reading file: %w", err)
+	}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+
+		intSlice := converToIntSlice(strings.Split(scanner.Text(), " "))
+
+		sortedSlice, swapCount := sortFinalCount(intSlice)
+
+		newSlice := make([]int, 0)
+
+		if swapCount <= 1 {
+			dupScrub := removeDuplicates(sortedSlice)
+			newSlice = append(newSlice, dupScrub...)
+			// fmt.Println(sortedSlice, newSlice, intSlice)
+
+		}
+
+		lenDiff := int(math.Abs(float64(len(intSlice) - len(newSlice))))
+
+		if lenDiff == 1 {
+
+			rp.Passed++
+			continue
+		}
+		rp.Failed++
+
+	}
+	rp.Total = rp.Passed + rp.Failed
+	fmt.Println("Passed:\t", rp.Passed, "\nFailed:\t", rp.Failed, "\nTotal:\t", rp.Total)
+	return 0, nil
 }
